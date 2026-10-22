@@ -13,6 +13,7 @@ body{background:var(--bg);color:var(--ink);font-family:"Inter","Segoe UI","Helve
 body.open .gate{display:none}
 .gate form{width:min(400px,100%)}
 .gate h1{margin:0 0 24px;text-align:center;font-size:clamp(24px,6vw,30px);line-height:1.15;font-weight:700;letter-spacing:-.015em}
+.field{margin-bottom:16px}
 .pw{position:relative}
 .gate input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--soft);border:1px solid transparent;border-radius:14px;padding:0 50px 0 18px;height:52px}
 .gate input::placeholder{color:var(--muted)}
@@ -35,6 +36,7 @@ body.open .gate{display:none}
 .mtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .mtab:focus-visible{outline:2px solid #2563EB;outline-offset:-2px}
 .mtab[hidden]{display:none}
+.whoName{margin-left:auto;align-self:center;padding:0 16px;font-size:13px;color:var(--muted);white-space:nowrap}
 .frames{flex:1 1 auto;position:relative;min-height:0}
 .frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;visibility:hidden}
 .frames iframe.on{visibility:visible}
@@ -44,6 +46,9 @@ body.open .gate{display:none}
 <div class="gate" id="gate">
   <form id="gateForm" autocomplete="off">
     <h1>Laporan Tanda Terima</h1>
+    <div class="field">
+      <input id="gname" type="text" placeholder="Nama" aria-label="Nama" autocomplete="name" required>
+    </div>
     <div class="pw">
       <input id="gpw" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>
       <button type="button" class="eye" id="geye" aria-label="Tampilkan password" aria-pressed="false">
@@ -56,7 +61,7 @@ body.open .gate{display:none}
   </form>
 </div>
 <div class="app">
-  <div class="mtabs" role="tablist" aria-label="Laporan">
+  <div class="mtabs" role="tablist" aria-label="Laporan"><span class="whoName" id="whoName" aria-hidden="true"></span>
     <button class="mtab" role="tab" id="tab-stnk" data-k="stnk" aria-selected="true" hidden>Tanda Terima STNK</button>
     <button class="mtab" role="tab" id="tab-bpkb" data-k="bpkb" aria-selected="false" hidden>Tanda Terima BPKB</button>
   </div>
@@ -2526,9 +2531,19 @@ function show(k){
     FR[x].f.classList.toggle('on',x===k);
   });
 }
+var BLOCKED_NAMA=['bpkb','stnk','gatsu','flamboyan','gagak hitam','gagak','otoxpert','adam malik','body repair'];
+function cekNama(v){
+  var n=(v||'').trim().toLowerCase();
+  if(!n) return 'Nama wajib diisi.';
+  for(var i=0;i<BLOCKED_NAMA.length;i++){ if(n.indexOf(BLOCKED_NAMA[i])>=0) return 'Isi nama Anda sendiri, bukan nama cabang/divisi.'; }
+  return '';
+}
 $('gateForm').addEventListener('submit',function(e){
   e.preventDefault();
-  var pw=$('gpw').value,btn=$('gbtn'),err=$('gerr'); if(!pw) return;
+  var nama=$('gname').value, pw=$('gpw').value, btn=$('gbtn'), err=$('gerr');
+  var namaErr=cekNama(nama);
+  if(namaErr){ err.textContent=namaErr; $('gname').focus(); return; }
+  if(!pw) return;
   if(!window.crypto||!crypto.subtle){err.textContent='Browser ini tidak bisa membuka laporan terkunci. Gunakan Chrome, Edge, atau Safari versi terbaru.';return}
   btn.disabled=true; err.textContent='Memeriksa password…';
   Promise.all(KEYS.map(function(k){return attempt(k,pw)})).then(function(ok){
@@ -2537,6 +2552,7 @@ $('gateForm').addEventListener('submit',function(e){
     KEYS.forEach(function(k){ if(open.indexOf(k)<0) FR[k].f.remove() });
     document.body.classList.add('open');
     open.forEach(function(k){ $('tab-'+k).hidden=false; });
+    $('whoName').textContent=nama.trim();
     $('gpw').value=''; err.textContent=''; btn.disabled=false;
     show(open[0]);
   });
