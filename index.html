@@ -205,6 +205,7 @@ table{border-collapse:collapse;width:100%}
 .clr:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .tools select.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .exp{position:relative}
+body.noexport .exp,body.noexport #dlgXls{display:none}
 .xpanel{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:320px;max-width:calc(100vw - 28px);background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px}
 .xpanel[hidden]{display:none}
 .xpanel fieldset{border:0;margin:0 0 8px;padding:0}
@@ -416,7 +417,7 @@ function buildLPRows(raw,types,divName){
   for(var i=0;i<raw.length;i++){
     var r=raw[i], ch=(r[3]||'').toUpperCase(), inf=types[ch], ty=inf?inf[0]:'', sl=inf?inf[1]:r[11], sv=inf?inf[2]:r[12], ls=(inf&&inf[3])?inf[3]:r[9];
     var mh=d2n(r[5]), tm=d2n(r[6]), bp=d2n(r[13]), sr=d2n(r[7]), bs=d2n(r[15]);
-    var ket=r[16]||'', ketR=r[17]||'', isOtr=isOffTheRoad(ket)||isOffTheRoad(ketR), isRet=isRetur(ket)||isRetur(ketR), excl=isOtr||isRet, cat=isOtr?'otr':(isRet?'retur':'');
+    var ket=r[16]||'', ketR=r[17]||'', wholeRow=r[18]||'', isOtr=isOffTheRoad(ket)||isOffTheRoad(ketR)||isOffTheRoad(wholeRow), isRet=isRetur(ket)||isRetur(ketR)||isRetur(wholeRow), excl=isOtr||isRet, cat=isOtr?'otr':(isRet?'retur':'');
     out[i]=[r[0],r[1],ty||r[2],ty?1:0,r[4],r[5],r[6],r[7],r[8],ls,r[10],sl,sv,ket,'','','','','',r[13]||'',(mh!==null&&tm!==null)?tm-mh:'',(tm!==null&&bp!==null)?bp-tm:'','',divName||'',r[3]||'',r[14]||'',r[15]||'',(tm!==null&&sr!==null)?sr-tm:'',(bp!==null&&bs!==null)?bs-bp:'',excl,cat];
   }
   out.sort(function(a,b){return a[0]-b[0]});
@@ -586,7 +587,7 @@ var fd=function(x){return x==null?'-':(Math.round(x*2)/2).toLocaleString('id-ID'
 function analyze(rows){
   var a1=[], a2=[], a3=[], a4=[], neg1=0, miss1=0, bpDulu=0, pend=[], withT=0, noT=0, withB=0, belumS=0, belumB=0, biro={}, otr=0, retur=0;
   rows.forEach(function(r){
-    var b=r[I.biro]||'(kosong)'; var o=biro[b]||(biro[b]={n:0,a1:[],a2:[],pend:0,otr:0,retur:0}); o.n++;
+    var bRaw=r[I.biro]; var b=bRaw?bRaw:(r[I.excl]?'Non Biro Jasa':'(kosong)'); var o=biro[b]||(biro[b]={n:0,a1:[],a2:[],pend:0,otr:0,retur:0}); o.n++;
     if(r[I.excl]){ if(r[I.exCat]==='otr'){otr++;o.otr++} else if(r[I.exCat]==='retur'){retur++;o.retur++} return; }
     var l1=r[I.l1], l2=r[I.l2];
     if(l1===''){miss1++} else if(l1<0){neg1++} else {a1.push(l1);o.a1.push(l1)}
@@ -688,7 +689,7 @@ function lpPred(key,biro){
     if(m[1]==='b2') return function(r){return r[I.l2]!==''&&r[I.l2]>=0&&bi(r[I.l2],BK)===ix};
     return function(r){return !!r[I.terima]&&!r[I.bpkb]&&bi(r[I.age]===''?0:r[I.age],AK)===ix};
   }
-  var bn=function(r){return (r[I.biro]||'(kosong)')===biro};
+  var bn=function(r){var bRaw=r[I.biro],bLabel=bRaw?bRaw:(r[I.excl]?'Non Biro Jasa':'(kosong)');return bLabel===biro};
   switch(key){
     case 'cnt1': return function(r){return r[I.l1]!==''&&r[I.l1]>=0};
     case 'neg1': return function(r){return r[I.l1]!==''&&r[I.l1]<0};
@@ -1196,7 +1197,7 @@ function sheetData(text,hdr,sheetName,receipt){
   var g=function(r,k){return idx[k]<0?'':(r[idx[k]]||'').trim()}, d=function(r,k){return idx[k]<0?'':nd(r[idx[k]])};
   var out=data.map(function(r){
     var base=[parseInt(r[idx.no].replace(/[^\d]/g,''),10),g(r,'nama'),g(r,'type'),g(r,'chassis'),g(r,'polisi'),d(r,'mohon'),d(r,'terima'),d(r,'serah'),g(r,'cetak'),g(r,'leasing'),g(r,'biro'),g(r,'sales'),g(r,'spv')];
-    return base.concat(receipt?[g(r,'ket'),g(r,'via'),g(r,'resi'),d(r,'bpkb'),g(r,'bast')]:[d(r,'bpkb'),g(r,'bast'),d(r,'bserah'),g(r,'ket'),g(r,'ketRetur')]);
+    return base.concat(receipt?[g(r,'ket'),g(r,'via'),g(r,'resi'),d(r,'bpkb'),g(r,'bast')]:[d(r,'bpkb'),g(r,'bast'),d(r,'bserah'),g(r,'ket'),g(r,'ketRetur'),r.join(' ')]);
   });
   var w=[];
   if(idx.biro<0) w.push('Sheet '+sheetName+': judul kolom BiroJasa tidak ditemukan.');
@@ -1359,10 +1360,10 @@ async function unlock(pw){
       return JSON.parse(new TextDecoder().decode(pt));
     }catch(e){return null}
   }));
-  var keys={}, id='';
-  out.forEach(function(o){ if(o){ Object.keys(o.k).forEach(function(n){keys[n]=o.k[n]}); id=o.id } });
+  var keys={}, id='', noExport=false;
+  out.forEach(function(o){ if(o){ Object.keys(o.k).forEach(function(n){keys[n]=o.k[n]}); id=o.id; if(o.ne) noExport=true; } });
   if(!Object.keys(keys).length) throw new Error('salah');
-  var snap={built:ENC.built,divs:[],types:{},warn:[],sheetId:id};
+  var snap={built:ENC.built,divs:[],types:{},warn:[],sheetId:id,noExport:noExport};
   var names=Object.keys(ENC.chunks).filter(function(n){return keys[n]});
   for(var i=0;i<names.length;i++){
     var ck=ENC.chunks[names[i]], dk=await crypto.subtle.importKey('raw',b64(keys[names[i]]),'AES-GCM',false,['decrypt']);
@@ -1378,7 +1379,7 @@ $('gateForm').addEventListener('submit',async function(e){
   btn.disabled=true; err.textContent='Memeriksa password…';
   try{
     SNAP=await unlock(pw);
-    document.body.classList.remove('locked'); $('gpw').value=''; err.textContent='';
+    document.body.classList.remove('locked'); document.body.classList.toggle('noexport',!!SNAP.noExport); window.__akses=SNAP.noExport?'Hanya Lihat':'Bisa Export'; $('gpw').value=''; err.textContent='';
     start();
   }catch(x){
     err.textContent='Password salah. Coba lagi.'; $('gpw').value=''; $('gpw').focus();
@@ -1531,6 +1532,7 @@ table{border-collapse:collapse;width:100%}
 .clr:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .tools select.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .exp{position:relative}
+body.noexport .exp,body.noexport #dlgXls{display:none}
 .xpanel{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:320px;max-width:calc(100vw - 28px);background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px}
 .xpanel[hidden]{display:none}
 .xpanel fieldset{border:0;margin:0 0 8px;padding:0}
@@ -2460,10 +2462,10 @@ async function unlock(pw){
       return JSON.parse(new TextDecoder().decode(pt));
     }catch(e){return null}
   }));
-  var keys={}, id='';
-  out.forEach(function(o){ if(o){ Object.keys(o.k).forEach(function(n){keys[n]=o.k[n]}); id=o.id } });
+  var keys={}, id='', noExport=false;
+  out.forEach(function(o){ if(o){ Object.keys(o.k).forEach(function(n){keys[n]=o.k[n]}); id=o.id; if(o.ne) noExport=true; } });
   if(!Object.keys(keys).length) throw new Error('salah');
-  var snap={built:ENC.built,divs:[],types:{},warn:[],sheetId:id};
+  var snap={built:ENC.built,divs:[],types:{},warn:[],sheetId:id,noExport:noExport};
   var names=Object.keys(ENC.chunks).filter(function(n){return keys[n]});
   for(var i=0;i<names.length;i++){
     var ck=ENC.chunks[names[i]], dk=await crypto.subtle.importKey('raw',b64(keys[names[i]]),'AES-GCM',false,['decrypt']);
@@ -2479,7 +2481,7 @@ $('gateForm').addEventListener('submit',async function(e){
   btn.disabled=true; err.textContent='Memeriksa password…';
   try{
     SNAP=await unlock(pw);
-    document.body.classList.remove('locked'); $('gpw').value=''; err.textContent='';
+    document.body.classList.remove('locked'); document.body.classList.toggle('noexport',!!SNAP.noExport); window.__akses=SNAP.noExport?'Hanya Lihat':'Bisa Export'; $('gpw').value=''; err.textContent='';
     start();
   }catch(x){
     err.textContent='Password salah. Coba lagi.'; $('gpw').value=''; $('gpw').focus();
@@ -2555,8 +2557,33 @@ $('gateForm').addEventListener('submit',function(e){
     $('whoName').textContent=nama.trim();
     $('gpw').value=''; err.textContent=''; btn.disabled=false;
     show(open[0]);
+    kirimNotifLogin(nama.trim(), open);
   });
 });
+var NOTIF_URL='https://script.google.com/macros/s/AKfycbzggGiQKV0_odLfKqXtshav6Sg7vrlgt85jegYPyy8jNRhNqEfvSK-Q8xPNsGHIZFFxWA/exec';
+function cabangDariFrame(k){
+  try{
+    var d=FR[k].f.contentDocument;
+    var sub=d.querySelector('.top .sub');
+    var t=sub?sub.textContent.trim():'';
+    return t.replace(/^Divisi\s+/i,'');
+  }catch(e){ return '' }
+}
+function aksesDariFrame(k){
+  try{ return FR[k].f.contentWindow.__akses||'' }catch(e){ return '' }
+}
+function waktuWIB(){
+  var d=new Date(), p=function(n){return (n<10?'0':'')+n};
+  var s=d.toLocaleString('en-US',{timeZone:'Asia/Jakarta',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var m=s.match(/(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2}):(\d{2})/);
+  return m?(m[2]+'-'+m[1]+'-'+m[3]+' '+m[4]+':'+m[5]+':'+m[6]+' WIB'):'';
+}
+function kirimNotifLogin(nama,open){
+  var cabang=open.map(cabangDariFrame).filter(Boolean)[0]||'Master/semua cabang';
+  var akses=open.map(aksesDariFrame).filter(Boolean)[0]||'Bisa Export';
+  var params=new URLSearchParams({nama:nama,cabang:cabang,akses:akses,waktu:waktuWIB()});
+  try{ fetch(NOTIF_URL+'?'+params.toString(),{mode:'no-cors'}).catch(function(){}) }catch(e){}
+}
 document.querySelector('.mtabs').addEventListener('click',function(e){var b=e.target.closest('.mtab');if(b&&!b.hidden)show(b.dataset.k)});
 $('geye').addEventListener('click',function(){
   var on=$('gpw').type==='password'; $('gpw').type=on?'text':'password';
