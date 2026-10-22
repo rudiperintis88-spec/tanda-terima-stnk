@@ -25,8 +25,8 @@ body.open .gate{display:none}
 .eye[aria-pressed="true"] .e-on{display:none}
 .eye[aria-pressed="true"] .e-off{display:block}
 .gerr{min-height:22px;margin:10px 4px 12px;color:var(--bad);font-size:14px;text-align:center}
-.gbtn{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;height:52px;line-height:52px;text-align:center;background:#6D28D9;color:#fff;font-weight:600;font-size:16px;border-radius:14px}
-.gbtn:hover{background:#5B21B6}
+.gbtn{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;height:52px;line-height:52px;text-align:center;background:#2563EB;color:#fff;font-weight:600;font-size:16px;border-radius:14px}
+.gbtn:hover{background:#1D4ED8}
 .gbtn:disabled{opacity:.6;cursor:progress}
 .gbtn:focus-visible,.eye:focus-visible{outline:2px solid #6D28D9;outline-offset:2px}
 .app{display:flex;flex-direction:column;height:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -36,7 +36,6 @@ body.open .gate{display:none}
 .mtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .mtab:focus-visible{outline:2px solid #2563EB;outline-offset:-2px}
 .mtab[hidden]{display:none}
-.whoName{margin-left:auto;align-self:center;padding:0 16px;font-size:13px;color:var(--muted);white-space:nowrap}
 .frames{flex:1 1 auto;position:relative;min-height:0}
 .frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;visibility:hidden}
 .frames iframe.on{visibility:visible}
@@ -50,18 +49,18 @@ body.open .gate{display:none}
       <input id="gname" type="text" placeholder="Nama" aria-label="Nama" autocomplete="name" required>
     </div>
     <div class="pw">
-      <input id="gpw" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>
+      <input id="gpw" type="password" placeholder="Masukkan password" aria-label="Password" autocomplete="current-password" required>
       <button type="button" class="eye" id="geye" aria-label="Tampilkan password" aria-pressed="false">
         <svg class="e-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
         <svg class="e-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18 18 0 0 1 4.1-5"/><path d="M9.9 5.2A10 10 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2"/><path d="M1 1l22 22"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/></svg>
       </button>
     </div>
-    <p class="gerr" id="gerr" role="alert"></p>
     <button class="gbtn" id="gbtn" type="submit">Masuk</button>
+    <p class="gerr" id="gerr" role="alert"></p>
   </form>
 </div>
 <div class="app">
-  <div class="mtabs" role="tablist" aria-label="Laporan"><span class="whoName" id="whoName" aria-hidden="true"></span>
+  <div class="mtabs" role="tablist" aria-label="Laporan">
     <button class="mtab" role="tab" id="tab-stnk" data-k="stnk" aria-selected="true" hidden>Tanda Terima STNK</button>
     <button class="mtab" role="tab" id="tab-bpkb" data-k="bpkb" aria-selected="false" hidden>Tanda Terima BPKB</button>
   </div>
@@ -610,7 +609,7 @@ function lpBtn(key,n,scope,bi,cls){
 }
 function renderLPInto(root,L,scope,hint){
   var q=function(s){return root.querySelector(s)};
-  q('.lpHint').textContent=hint;
+  q('.lpHint').textContent='';
   var stRows=function(s){return s?[['Unit dihitung',lpBtn('cnt1',s.n,scope)],['Rata-rata',f1(s.mean)+' hari'],['Median',fd(s.med)+' hari'],['Tercepat',fmt(s.min)+' hari'],['Terlama',fmt(s.max)+' hari']]:[['Unit dihitung','0']]};
   var stRows2=function(s){var r=stRows(s); if(s) r[0][1]=lpBtn('cnt2',s.n,scope); return r};
   var bucketRows=function(arr,labels,edges,pfx){
@@ -685,28 +684,28 @@ function bi(v,edges){var i=0;while(i<edges.length&&v>edges[i])i++;return i}
 function lpPred(key,biro){
   var m=key.match(/^(b1|b2|age):(\d+)$/);
   if(m){var ix=+m[2];
-    if(m[1]==='b1') return function(r){return r[I.l1]!==''&&r[I.l1]>=0&&bi(r[I.l1],BK)===ix};
-    if(m[1]==='b2') return function(r){return r[I.l2]!==''&&r[I.l2]>=0&&bi(r[I.l2],BK)===ix};
-    return function(r){return !!r[I.terima]&&!r[I.bpkb]&&bi(r[I.age]===''?0:r[I.age],AK)===ix};
+    if(m[1]==='b1') return function(r){return !r[I.excl]&&r[I.l1]!==''&&r[I.l1]>=0&&bi(r[I.l1],BK)===ix};
+    if(m[1]==='b2') return function(r){return !r[I.excl]&&r[I.l2]!==''&&r[I.l2]>=0&&bi(r[I.l2],BK)===ix};
+    return function(r){return !r[I.excl]&&!!r[I.terima]&&!r[I.bpkb]&&bi(r[I.age]===''?0:r[I.age],AK)===ix};
   }
   var bn=function(r){var bRaw=r[I.biro],bLabel=bRaw?bRaw:(r[I.excl]?'Non Biro Jasa':'(kosong)');return bLabel===biro};
   switch(key){
-    case 'cnt1': return function(r){return r[I.l1]!==''&&r[I.l1]>=0};
-    case 'neg1': return function(r){return r[I.l1]!==''&&r[I.l1]<0};
-    case 'miss1': return function(r){return r[I.l1]===''};
-    case 'cnt2': return function(r){return r[I.l2]!==''&&r[I.l2]>=0};
-    case 'bpdulu': return function(r){return r[I.l2]!==''&&r[I.l2]<0};
-    case 'withT': return function(r){return !!r[I.terima]};
-    case 'sudah': return function(r){return !!r[I.terima]&&!!r[I.bpkb]};
-    case 'belum': return function(r){return !!r[I.terima]&&!r[I.bpkb]};
-    case 'noT': return function(r){return !r[I.terima]};
-    case 'belumS': return function(r){return !!r[I.terima]&&!r[I.serah]};
-    case 'belumB': return function(r){return !!r[I.bpkb]&&!r[I.bserah]};
-    case 'sudahB': return function(r){return !!r[I.bpkb]};
-    case 'cnt3': return function(r){return r[I.l3]!==''&&r[I.l3]>=0};
-    case 'cnt4': return function(r){return r[I.l4]!==''&&r[I.l4]>=0};
+    case 'cnt1': return function(r){return !r[I.excl]&&r[I.l1]!==''&&r[I.l1]>=0};
+    case 'neg1': return function(r){return !r[I.excl]&&r[I.l1]!==''&&r[I.l1]<0};
+    case 'miss1': return function(r){return !r[I.excl]&&r[I.l1]===''};
+    case 'cnt2': return function(r){return !r[I.excl]&&r[I.l2]!==''&&r[I.l2]>=0};
+    case 'bpdulu': return function(r){return !r[I.excl]&&r[I.l2]!==''&&r[I.l2]<0};
+    case 'withT': return function(r){return !r[I.excl]&&!!r[I.terima]};
+    case 'sudah': return function(r){return !r[I.excl]&&!!r[I.terima]&&!!r[I.bpkb]};
+    case 'belum': return function(r){return !r[I.excl]&&!!r[I.terima]&&!r[I.bpkb]};
+    case 'noT': return function(r){return !r[I.excl]&&!r[I.terima]};
+    case 'belumS': return function(r){return !r[I.excl]&&!!r[I.terima]&&!r[I.serah]};
+    case 'belumB': return function(r){return !r[I.excl]&&!!r[I.bpkb]&&!r[I.bserah]};
+    case 'sudahB': return function(r){return !r[I.excl]&&!!r[I.bpkb]};
+    case 'cnt3': return function(r){return !r[I.excl]&&r[I.l3]!==''&&r[I.l3]>=0};
+    case 'cnt4': return function(r){return !r[I.excl]&&r[I.l4]!==''&&r[I.l4]>=0};
     case 'biro': return bn;
-    case 'biroBelum': return function(r){return bn(r)&&!!r[I.terima]&&!r[I.bpkb]};
+    case 'biroBelum': return function(r){return bn(r)&&!r[I.excl]&&!!r[I.terima]&&!r[I.bpkb]};
     case 'otr': return function(r){return r[I.exCat]==='otr'};
     case 'retur': return function(r){return r[I.exCat]==='retur'};
     case 'biroOtr': return function(r){return bn(r)&&r[I.exCat]==='otr'};
@@ -2535,8 +2534,10 @@ function show(k){
 }
 var BLOCKED_NAMA=['bpkb','stnk','gatsu','flamboyan','gagak hitam','gagak','otoxpert','adam malik','body repair'];
 function cekNama(v){
-  var n=(v||'').trim().toLowerCase();
+  var raw=(v||'').trim(), n=raw.toLowerCase();
   if(!n) return 'Nama wajib diisi.';
+  var kata=raw.split(/\s+/).filter(Boolean);
+  if(kata.length<2) return 'Masukkan nama lengkap yang benar (minimal 2 kata).';
   for(var i=0;i<BLOCKED_NAMA.length;i++){ if(n.indexOf(BLOCKED_NAMA[i])>=0) return 'Isi nama Anda sendiri, bukan nama cabang/divisi.'; }
   return '';
 }
@@ -2554,13 +2555,12 @@ $('gateForm').addEventListener('submit',function(e){
     KEYS.forEach(function(k){ if(open.indexOf(k)<0) FR[k].f.remove() });
     document.body.classList.add('open');
     open.forEach(function(k){ $('tab-'+k).hidden=false; });
-    $('whoName').textContent=nama.trim();
     $('gpw').value=''; err.textContent=''; btn.disabled=false;
     show(open[0]);
     kirimNotifLogin(nama.trim(), open);
   });
 });
-var NOTIF_URL='https://script.google.com/macros/s/AKfycbzggGiQKV0_odLfKqXtshav6Sg7vrlgt85jegYPyy8jNRhNqEfvSK-Q8xPNsGHIZFFxWA/exec';
+var NOTIF_URL='https://script.google.com/macros/s/AKfycbwhjPzfK-D6CLYOYxW0S3MZgNa72OePU51Dtp9IglTZGp0Joh-z8NeqTsLW80vL2ktTGg/exec';
 function cabangDariFrame(k){
   try{
     var d=FR[k].f.contentDocument;
@@ -2582,7 +2582,10 @@ function kirimNotifLogin(nama,open){
   var cabang=open.map(cabangDariFrame).filter(Boolean)[0]||'Master/semua cabang';
   var akses=open.map(aksesDariFrame).filter(Boolean)[0]||'Bisa Export';
   var params=new URLSearchParams({nama:nama,cabang:cabang,akses:akses,waktu:waktuWIB()});
+  /* Kirim dua cara sekaligus (GET lewat query string, dan POST lewat body form)
+     karena tidak diketahui apakah skrip Apps Script Anda memakai doGet atau doPost. */
   try{ fetch(NOTIF_URL+'?'+params.toString(),{mode:'no-cors'}).catch(function(){}) }catch(e){}
+  try{ fetch(NOTIF_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:params.toString()}).catch(function(){}) }catch(e){}
 }
 document.querySelector('.mtabs').addEventListener('click',function(e){var b=e.target.closest('.mtab');if(b&&!b.hidden)show(b.dataset.k)});
 $('geye').addEventListener('click',function(){
