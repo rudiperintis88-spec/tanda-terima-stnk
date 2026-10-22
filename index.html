@@ -39,11 +39,19 @@ body.open .gate{display:none}
 .frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;visibility:hidden}
 .frames iframe.on{visibility:visible}
 </style>
+<style>
+#gname{width:100% !important;box-sizing:border-box !important;background:#F5F6F8 !important;border:1px solid transparent !important;border-radius:16px !important;padding:20px 22px !important;font-size:16px !important;line-height:1.3 !important;color:#171B21 !important;font-family:inherit !important;text-align:left !important;margin:0 0 12px !important;-webkit-appearance:none !important;appearance:none !important;}
+#gname::placeholder{color:#9aa3b1 !important;opacity:1 !important;}
+#gname:focus{outline:none !important;border-color:#6D28D9 !important;box-shadow:none !important;}
+</style>
 </head>
 <body>
 <div class="gate" id="gate">
   <form id="gateForm" autocomplete="off">
     <h1>Laporan Tanda Terima</h1>
+    <div class="pw" style="margin-bottom:10px">
+      <input id="gname" type="text" placeholder="Nama" aria-label="Nama lengkap" autocomplete="off" required>
+    </div>
     <div class="pw">
       <input id="gpw" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required>
       <button type="button" class="eye" id="geye" aria-label="Tampilkan password" aria-pressed="false">
@@ -2486,6 +2494,22 @@ $('gpw').focus();
 (function(){
 "use strict";
 var $=function(i){return document.getElementById(i)};
+var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbzggGiQKV0_odLfKqXtshav6Sg7vrlgt85jegYPyy8jNRhNqEfvSK-Q8xPNsGHIZFFxWA/exec';
+var NAMA_KATA_TERLARANG=["bpkb","gagak","hitam","gatsu","flamboyan","piutang","followup","follow","up","dashboard","cabang","cash","leasing","perintis","perkasa","test","tes","admin","nama","adam","malik","body","repair","otoxpert","material","stnk","laporan","tanda","terima"];
+function validName(v){
+  v=(v||'').trim();
+  if(!/^[A-Za-z.' -]+$/.test(v)) return false;
+  var words=v.split(/\s+/).filter(Boolean);
+  if(words.length<2) return false;
+  var lower=v.toLowerCase();
+  for(var i=0;i<NAMA_KATA_TERLARANG.length;i++){ if(lower.indexOf(NAMA_KATA_TERLARANG[i])>=0) return false; }
+  return true;
+}
+function sendLoginNotif(nama,cabang){
+  try{
+    fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({nama:nama,cabang:cabang,waktu:new Date().toISOString()})});
+  }catch(e){}
+}
 var KEYS=['stnk','bpkb'], FR={};
 var BACK=new RegExp('<\\\\/script','gi');
 function html(k){return $('src-'+k).textContent.replace(BACK,'</script')}
@@ -2520,12 +2544,15 @@ function show(k){
 $('gateForm').addEventListener('submit',function(e){
   e.preventDefault();
   var pw=$('gpw').value,btn=$('gbtn'),err=$('gerr'); if(!pw) return;
+  if(!validName($('gname').value)){ err.textContent='Masukkan nama lengkap yang benar (minimal 2 kata).'; $('gname').focus(); return; }
   if(!window.crypto||!crypto.subtle){err.textContent='Browser ini tidak bisa membuka laporan terkunci. Gunakan Chrome, Edge, atau Safari versi terbaru.';return}
   btn.disabled=true; err.textContent='Memeriksa password…';
   Promise.all(KEYS.map(function(k){return attempt(k,pw)})).then(function(ok){
     var open=KEYS.filter(function(k,i){return ok[i]});
     if(!open.length){err.textContent='Password salah. Coba lagi.';$('gpw').value='';$('gpw').focus();btn.disabled=false;return}
     KEYS.forEach(function(k){ if(open.indexOf(k)<0) FR[k].f.remove() });
+    var openLabels=open.map(function(k){return k==='stnk'?'Tanda Terima STNK':'Tanda Terima BPKB';});
+    sendLoginNotif($('gname').value.trim(),'Laporan Tanda Terima - '+openLabels.join(', '));
     document.body.classList.add('open');
     open.forEach(function(k){ $('tab-'+k).hidden=false; });
     $('gpw').value=''; err.textContent=''; btn.disabled=false;
@@ -2537,7 +2564,8 @@ $('geye').addEventListener('click',function(){
   var on=$('gpw').type==='password'; $('gpw').type=on?'text':'password';
   this.setAttribute('aria-pressed',String(on)); this.setAttribute('aria-label',on?'Sembunyikan password':'Tampilkan password'); $('gpw').focus();
 });
-$('gpw').focus();
+$('gname').focus();
+$('gname').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('gpw').focus(); } });
 })();
 </script>
 </body>
