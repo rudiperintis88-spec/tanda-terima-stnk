@@ -44,6 +44,13 @@ body.open .gate{display:none}
 #gname::placeholder{color:#9aa3b1 !important;opacity:1 !important;}
 #gname:focus{outline:none !important;border-color:#6D28D9 !important;box-shadow:none !important;}
 </style>
+<style id="fieldfix">
+#gname,#gpw{width:100% !important;height:56px !important;box-sizing:border-box !important;padding:0 18px !important;margin:0 !important;font-size:16px !important;line-height:normal !important;text-align:left !important;border:1px solid #E4E8EE !important;border-radius:14px !important;background:#F5F6F8 !important;color:#171B21 !important;font-family:inherit !important;-webkit-appearance:none !important;appearance:none !important}
+#gpw{padding-right:52px !important}
+#gname::placeholder,#gpw::placeholder{color:#9aa3b1 !important;opacity:1 !important;font-size:16px !important}
+#gname:focus,#gpw:focus{outline:none !important;box-shadow:none !important;border-color:#6D28D9 !important}
+#gname{margin-bottom:0 !important}
+</style>
 </head>
 <body>
 <div class="gate" id="gate">
@@ -2507,7 +2514,7 @@ function validName(v){
 }
 function sendLoginNotif(nama,cabang){
   try{
-    fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({nama:nama,cabang:cabang,waktu:new Date().toISOString()})});
+    fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({nama:nama,cabang:cabang,akses:'Bisa Export',waktu:new Date().toISOString()})});
   }catch(e){}
 }
 var KEYS=['stnk','bpkb'], FR={};
