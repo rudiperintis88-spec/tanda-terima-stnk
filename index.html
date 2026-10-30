@@ -355,6 +355,7 @@ var KATS=[
 var METS=['Via Pengiriman','Via Surat Kuasa','Pengurusan via Pihak Lain','Bukti Foto/Chat/Lainnya'];
 var NONE='Tanpa keterangan metode';
 var I={no:0,nama:1,type:2,tf:3,polisi:4,mohon:5,terima:6,serah:7,cetak:8,leasing:9,biro:10,sales:11,spv:12,ket:13,kat:14,met:15,via:16,resi:17,eks:18,bpkb:19,l1:20,l2:21,age:22,div:23,chassis:24,bast:25,bserah:26,l3:27,l4:28,excl:29,exCat:30};
+function biroLabel(r){return r[I.biro]||(r[I.excl]?'Non Biro Jasa':'(kosong)')}
 var COLS=[['No',I.no,'nw','seq'],['STNK a/n',I.nama,'','txt'],['Type',I.type,'type','txt'],['NoRangka',I.chassis,'','txt'],['No. Bast',I.bast,'','txt'],['No Polisi',I.polisi,'','txt'],['Tgl Mohon STNK',I.mohon,'dt','date'],['Terima Tanggal',I.terima,'dt','date'],['Serah Tanggal',I.serah,'dt','date'],['STNK_No Cetak',I.cetak,'','txt'],['Leasing',I.leasing,'','txt'],['Biro Jasa',I.biro,'','txt'],['Salesman',I.sales,'','txt'],['Supervisor',I.spv,'','txt'],['Keterangan',I.ket,'ket','txt'],['BPKB Terima Tanggal',I.bpkb,'dt','date'],['Mohon ke Terima STNK (hari)',I.l1,'n','num'],['STNK ke Terima BPKB (hari)',I.l2,'n','num'],['Cara penyerahan',I.met,'met','txt'],['Pengiriman via',I.via,'','txt'],['Resi',I.resi,'','txt']];
 var fmt=function(n){return n.toLocaleString('id-ID')};
 var pct=function(n,t){if(t&&n>0&&n/t<0.001)return '<0,1%';return t?(n/t*100).toLocaleString('id-ID',{minimumFractionDigits:1,maximumFractionDigits:1})+'%':'0%'};
@@ -514,7 +515,7 @@ var divisions=[];
 function Division(cfg,per,raw,lpPer,lpRaw){
   var self=this;
   this.cfg=cfg; this.per=per; this.raw=raw; this.rows=[];
-  this.st={sub:'rekap',tab:'ada',met:'',eks:'',bp:'',q:'',page:1,ps:50,sortCol:null,sortDir:null};
+  this.st={sub:'rekap',tab:'ada',met:'',eks:'',bp:'',biro:'',q:'',page:1,ps:50,sortCol:null,sortDir:null};
   var el=document.createElement('div'); el.className='panel'; el.id='panel-'+cfg.id; el.hidden=true;
   el.setAttribute('role','tabpanel'); el.style.setProperty('--acc-l',cfg.l); el.style.setProperty('--acc-d',cfg.d);
   el.innerHTML=
@@ -529,6 +530,7 @@ function Division(cfg,per,raw,lpPer,lpRaw){
    '<div class="fg"><label class="lb">Cara penyerahan</label><select class="fm" aria-label="Filter cara penyerahan"></select></div>'+
    '<div class="fg"><label class="lb">Pengiriman via</label><select class="fe" aria-label="Filter pengiriman via"></select></div>'+
    '<div class="fg"><label class="lb">BPKB</label><select class="fb" aria-label="Filter status BPKB"><option value="">Semua</option><option value="sudah">Sudah terima BPKB</option><option value="belum">Belum terima BPKB (STNK sudah diterima)</option><option value="bpkb-dulu">BPKB diterima lebih dulu dari STNK</option><option value="tgl-aneh">Terima STNK lebih awal dari tgl mohon</option></select></div>'+
+   '<div class="fg"><label class="lb">Biro Jasa</label><select class="fbiro" aria-label="Filter biro jasa"></select></div>'+
    '<button type="button" class="clr clrAll" aria-label="Hapus semua filter" hidden>Hapus filter</button>'+
    '<div class="exp"><button class="btn pri expBtn" type="button" aria-expanded="false">Export</button>'+
    '<div class="xpanel" hidden><fieldset><legend>Cakupan</legend>'+
@@ -552,11 +554,12 @@ Division.prototype.setData=function(per,raw,types,lpPer,lpRaw){
   var idx={}; this.lpRaw.forEach(function(r){var k=(r[3]||'').toUpperCase(); if(k&&!idx[k]) idx[k]=[r[5],r[6],r[13]]});
   this.rows=buildRows(raw,types,this.cfg.name,idx); this.colW=colWidths(this.rows,COLS);
   this.rowsLP=buildLPRows(this.lpRaw,types,this.cfg.name);
-  var R=this.rows, total=R.length, cK={}, cM={}, cE={};
+  var R=this.rows, total=R.length, cK={}, cM={}, cE={}, cB={};
   KATS.forEach(function(x){cK[x.k]=0});
-  R.forEach(function(r){cK[r[I.kat]]=(cK[r[I.kat]]||0)+1;var m=r[I.met]||NONE;cM[m]=(cM[m]||0)+1;if(r[I.eks])cE[r[I.eks]]=(cE[r[I.eks]]||0)+1});
-  this.total=total; this.cK=cK; this.cM=cM; this.cE=cE;
+  R.forEach(function(r){cK[r[I.kat]]=(cK[r[I.kat]]||0)+1;var m=r[I.met]||NONE;cM[m]=(cM[m]||0)+1;if(r[I.eks])cE[r[I.eks]]=(cE[r[I.eks]]||0)+1;var b=biroLabel(r);cB[b]=(cB[b]||0)+1});
+  this.total=total; this.cK=cK; this.cM=cM; this.cE=cE; this.cB=cB;
   this.EKS=Object.keys(cE).sort(function(a,b){return cE[b]-cE[a]});
+  this.BIROS=Object.keys(cB).sort(function(a,b){return cB[b]-cB[a]});
   this.calcLP(); this.notes=makeNotes(R).concat(lpNotes(this.lp,'Data '+this.cfg.name));
   this.q('.per').textContent=per||'';
   this.q('.figs').innerHTML='<div class="fig"><b>'+fmt(total)+'</b><span>unit tercatat</span></div><div class="fig"><b>'+fmt(cM['Via Pengiriman']||0)+'</b><span>via pengiriman</span></div><div class="fig"><b>'+fmt(cM['Via Surat Kuasa']||0)+'</b><span>via surat kuasa</span></div>';
@@ -830,12 +833,17 @@ Division.prototype.selects=function(){
   fe.innerHTML='<option value="">Semua</option>'+this.EKS.map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+fmt(self.cE[k])+')</option>'}).join('');
   if(st.met&&!this.cM[st.met]) st.met=''; if(st.eks&&!this.cE[st.eks]) st.eks='';
   fm.value=st.met; fe.value=st.eks; this.q('.fb').value=st.bp; fe.disabled=!this.EKS.length;
+  var fbiro=this.q('.fbiro');
+  fbiro.innerHTML='<option value="">Semua</option>'+this.BIROS.map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+fmt(self.cB[k])+')</option>'}).join('');
+  if(st.biro&&!this.cB[st.biro]) st.biro='';
+  fbiro.value=st.biro;
 };
 Division.prototype.match=function(r,tab){
   var st=this.st;
   if(tab!=='all'&&r[I.kat]!==tab) return false;
   if(st.met){var m=r[I.met]||NONE; if(m!==st.met) return false}
   if(st.eks&&r[I.eks]!==st.eks) return false;
+  if(st.biro&&biroLabel(r)!==st.biro) return false;
   if(st.bp==='sudah'&&!r[I.bpkb]) return false;
   if(st.bp==='belum'&&!(r[I.terima]&&!r[I.bpkb])) return false;
   if(st.bp==='bpkb-dulu'&&!(r[I.l2]!==''&&r[I.l2]<0)) return false;
@@ -907,7 +915,7 @@ Division.prototype.renderTable=function(){
 };
 Division.prototype.syncClear=function(){
   var st=this.st, self=this, n=0;
-  [['fm',st.met],['fe',st.eks],['fb',st.bp]].forEach(function(p){
+  [['fm',st.met],['fe',st.eks],['fb',st.bp],['fbiro',st.biro]].forEach(function(p){
     var on=p[1]!==''; if(on) n++;
     var s=self.q('.'+p[0]); if(s) s.classList.toggle('on',on);
   });
@@ -915,7 +923,7 @@ Division.prototype.syncClear=function(){
   var b=this.q('.clrAll'); b.hidden=(n===0); b.textContent='Hapus filter'+(n>1?' ('+n+')':'');
 };
 Division.prototype.refresh=function(){this.tabs();this.renderTable()};
-Division.prototype.setFilters=function(met,eks,bp){this.st.met=met;this.st.eks=eks;this.st.bp=bp||'';this.q('.fm').value=met;this.q('.fe').value=eks;this.q('.fb').value=this.st.bp};
+Division.prototype.setFilters=function(met,eks,bp){this.st.met=met;this.st.eks=eks;this.st.bp=bp||'';this.st.biro='';this.q('.fm').value=met;this.q('.fe').value=eks;this.q('.fb').value=this.st.bp;this.q('.fbiro').value=''};
 Division.prototype.renderSub=function(){
   var st=this.st, self=this, hasEks=this.EKS.length>0;
   var defs=[['rekap','Rekap',''],['eks','Via pengiriman per ekspedisi',hasEks?fmt(this.cM['Via Pengiriman']||0):''],['lp','Lama proses STNK dan BPKB',''],['notes','Catatan',fmt(this.notes.length)],['list','Tanda Terima STNK',fmt(this.total)]];
@@ -942,6 +950,7 @@ Division.prototype.filterDesc=function(){
   if(st.q.trim()) p.push('Pencarian: "'+st.q.trim()+'"');
   if(st.met) p.push('Cara penyerahan: '+st.met);
   if(st.eks) p.push('Pengiriman via: '+st.eks);
+  if(st.biro) p.push('Biro Jasa: '+st.biro);
   if(st.bp) p.push('BPKB: '+this.q('.fb').selectedOptions[0].text);
   if(st.sortCol!==null) p.push('Urut '+COLS[st.sortCol][0]+(st.sortDir==='asc'?' naik':' turun'));
   return p.length?p.join('; '):'Tanpa filter tambahan';
@@ -1039,8 +1048,8 @@ Division.prototype.bind=function(){
   el.addEventListener('click',function(e){
     var t=e.target.closest('button'); if(!t) return;
     if(t.classList.contains('clrAll')){
-      st.met=''; st.eks=''; st.bp=''; st.q='';
-      self.q('.fm').value=''; self.q('.fe').value=''; self.q('.fb').value=''; self.q('.q').value='';
+      st.met=''; st.eks=''; st.bp=''; st.biro=''; st.q='';
+      self.q('.fm').value=''; self.q('.fe').value=''; self.q('.fb').value=''; self.q('.fbiro').value=''; self.q('.q').value='';
       st.page=1; self.renderTable(); self.q('.q').focus();
     }
     else if(t.dataset.bp!==undefined){self.setFilters('','',t.dataset.bp);st.tab='all';st.page=1;self.refresh();self.goList()}
@@ -1064,6 +1073,7 @@ Division.prototype.bind=function(){
   this.q('.fm').addEventListener('change',function(e){st.met=e.target.value;st.page=1;self.renderTable()});
   this.q('.fe').addEventListener('change',function(e){st.eks=e.target.value;st.page=1;self.renderTable()});
   this.q('.fb').addEventListener('change',function(e){st.bp=e.target.value;st.page=1;self.renderTable()});
+  this.q('.fbiro').addEventListener('change',function(e){st.biro=e.target.value;st.page=1;self.renderTable()});
   this.q('.ps').addEventListener('change',function(e){st.ps=parseInt(e.target.value,10);st.page=1;self.renderTable()});
   Array.prototype.forEach.call(el.querySelectorAll('input[type=radio]'),function(i){i.addEventListener('change',function(){self.countScope()})});
   document.addEventListener('click',function(e){var p=self.q('.xpanel');if(!p.hidden&&!e.target.closest('.exp'))self.openPanel(false)});
@@ -1759,6 +1769,7 @@ function typesFrom(text){
 }
 /* ====== Klasifikasi ====== */
 var I={no:0,nama:1,type:2,tf:3,polisi:4,terima:5,serah:6,cetak:7,leasing:8,biro:9,sales:10,spv:11,surat:12,ket:13,alasan:14,kat:15,div:16,chassis:17,thn:18,stat:19,kuasa:20,bast:21};
+function biroLabel(r){return r[I.biro]||'(kosong)'}
 var SURAT_OK=/surat\s+(pernyataan|konfirmasi|kesepakatan)[\s\S]*\bada\b/i;
 var KSHORT={ada:'Fisik ada',surat:'Surat belum lengkap',proses:'Proses pengantaran',lain:'Lainnya'};
 function isCash(l){return (l||'').trim().toLowerCase()==='cash'}
@@ -2010,7 +2021,7 @@ var divisions=[];
 function Division(cfg,per,raw){
   var self=this;
   this.cfg=cfg; this.per=per; this.raw=raw; this.rows=[];
-  this.st={sub:'rekap',tab:'ada',lea:'',jen:'',thn:'',q:'',page:1,ps:50,sortCol:null,sortDir:null};
+  this.st={sub:'rekap',tab:'ada',lea:'',jen:'',thn:'',biro:'',q:'',page:1,ps:50,sortCol:null,sortDir:null};
   var el=document.createElement('div'); el.className='panel'; el.id='panel-'+cfg.id; el.hidden=true;
   el.setAttribute('role','tabpanel'); el.style.setProperty('--acc-l',cfg.l); el.style.setProperty('--acc-d',cfg.d);
   el.innerHTML=
@@ -2023,6 +2034,7 @@ function Division(cfg,per,raw){
    '<div class="fg"><label class="lb">Leasing</label><select class="fl" aria-label="Filter leasing"></select></div>'+
    '<div class="fg"><label class="lb">Pembelian</label><select class="fj" aria-label="Filter cash atau leasing"><option value="">Semua</option><option value="cash">Cash</option><option value="leasing">Leasing</option></select></div>'+
    '<div class="fg"><label class="lb">Tahun terima BPKB</label><select class="fy" aria-label="Filter tahun terima BPKB"></select></div>'+
+   '<div class="fg"><label class="lb">Biro Jasa</label><select class="fbiro" aria-label="Filter biro jasa"></select></div>'+
    '<button type="button" class="clr clrAll" aria-label="Hapus semua filter" hidden>Hapus filter</button>'+
    '<div class="exp"><button class="btn pri expBtn" type="button" aria-expanded="false">Export</button>'+
    '<div class="xpanel" hidden><fieldset><legend>Cakupan</legend>'+
@@ -2043,16 +2055,17 @@ function Division(cfg,per,raw){
 Division.prototype.setData=function(per,raw,types){
   this.per=per; this.raw=raw;
   this.rows=buildRows(raw,types,this.cfg.name); this.colW=colWidths(this.rows,COLS);
-  var R=this.rows, total=R.length, cK={}, L={}, yrs={}, nK=0, nKc=0;
+  var R=this.rows, total=R.length, cK={}, L={}, yrs={}, cB={}, nK=0, nKc=0;
   KATS.forEach(function(x){cK[x.k]=0});
   R.forEach(function(r){
     cK[r[I.kat]]=(cK[r[I.kat]]||0)+1;
     var l=leaOf(r), o=L[l]||(L[l]={n:0,ada:0,surat:0,proses:0,lain:0}); o.n++; o[r[I.kat]]++;
     if(r[I.thn]) yrs[r[I.thn]]=1;
     if(r[I.kuasa]){nK++; if(isCash(r[I.leasing])) nKc++}
+    var b=biroLabel(r); cB[b]=(cB[b]||0)+1;
   });
   this.nK=nK; this.nKc=nKc;
-  this.total=total; this.cK=cK; this.L=L; this.yrs=Object.keys(yrs).sort();
+  this.total=total; this.cK=cK; this.L=L; this.yrs=Object.keys(yrs).sort(); this.cB=cB;
   this.notes=makeNotes(R);
   this.q('.per').textContent=per||'';
   this.q('.figs').innerHTML='<div class="fig"><b>'+fmt(total)+'</b><span>unit tercatat</span></div><div class="fig"><b>'+fmt(cK.ada||0)+'</b><span>fisik ada</span></div><div class="fig"><b>'+fmt(cK.surat||0)+'</b><span>surat belum lengkap</span></div>';
@@ -2096,6 +2109,10 @@ Division.prototype.selects=function(){
   fy.innerHTML='<option value="">Semua</option>'+this.yrs.map(function(y){return '<option value="'+y+'">'+y+'</option>'}).join('');
   if(st.lea&&!this.L[st.lea]) st.lea=''; if(st.thn&&this.yrs.indexOf(st.thn)<0) st.thn='';
   fl.value=st.lea; fy.value=st.thn; this.q('.fj').value=st.jen;
+  var fbiro=this.q('.fbiro'), cB=this.cB, bks=Object.keys(cB).sort(function(a,b){return cB[b]-cB[a]});
+  fbiro.innerHTML='<option value="">Semua</option>'+bks.map(function(k){return '<option value="'+esc(k)+'">'+esc(k)+' ('+fmt(cB[k])+')</option>'}).join('');
+  if(st.biro&&!cB[st.biro]) st.biro='';
+  fbiro.value=st.biro;
 };
 Division.prototype.match=function(r,tab){
   var st=this.st;
@@ -2105,6 +2122,7 @@ Division.prototype.match=function(r,tab){
   if(st.jen==='cash'&&!isCash(r[I.leasing])) return false;
   if(st.jen==='leasing'&&isCash(r[I.leasing])) return false;
   if(st.thn&&r[I.thn]!==st.thn) return false;
+  if(st.biro&&biroLabel(r)!==st.biro) return false;
   var q=st.q.trim().toLowerCase();
   if(q){
     var s=[r[I.nama],r[I.type],r[I.chassis],r[I.bast],r[I.polisi],r[I.sales],r[I.spv],r[I.biro],r[I.leasing],r[I.cetak],r[I.surat],r[I.ket],r[I.alasan]].join(' ').toLowerCase();
@@ -2144,7 +2162,7 @@ Division.prototype.renderTable=function(){
 };
 Division.prototype.syncClear=function(){
   var st=this.st, self=this, n=0;
-  [['fl',st.lea],['fj',st.jen],['fy',st.thn]].forEach(function(p){
+  [['fl',st.lea],['fj',st.jen],['fy',st.thn],['fbiro',st.biro]].forEach(function(p){
     var on=p[1]!==''; if(on) n++;
     var s=self.q('.'+p[0]); if(s) s.classList.toggle('on',on);
   });
@@ -2152,7 +2170,7 @@ Division.prototype.syncClear=function(){
   var b=this.q('.clrAll'); b.hidden=(n===0); b.textContent='Hapus filter'+(n>1?' ('+n+')':'');
 };
 Division.prototype.refresh=function(){this.tabs();this.renderTable()};
-Division.prototype.setFilters=function(lea){this.st.lea=lea||'';this.st.jen='';this.st.thn='';this.st.q='';this.q('.q').value='';this.q('.fl').value=this.st.lea;this.q('.fj').value='';this.q('.fy').value=''};
+Division.prototype.setFilters=function(lea){this.st.lea=lea||'';this.st.jen='';this.st.thn='';this.st.biro='';this.st.q='';this.q('.q').value='';this.q('.fl').value=this.st.lea;this.q('.fj').value='';this.q('.fy').value='';this.q('.fbiro').value=''};
 Division.prototype.renderSub=function(){
   var st=this.st;
   var defs=[['rekap','Rekap',''],['notes','Catatan',fmt(this.notes.length)],['list','Tanda Terima BPKB',fmt(this.total)]];
@@ -2179,6 +2197,7 @@ Division.prototype.filterDesc=function(){
   if(st.lea) p.push('Leasing: '+st.lea);
   if(st.jen) p.push('Pembelian: '+(st.jen==='cash'?'Cash':'Leasing'));
   if(st.thn) p.push('Tahun terima BPKB: '+st.thn);
+  if(st.biro) p.push('Biro Jasa: '+st.biro);
   if(st.sortCol!==null) p.push('Urut '+COLS[st.sortCol][0]+(st.sortDir==='asc'?' naik':' turun'));
   return p.length?p.join('; '):'Tanpa filter tambahan';
 };
@@ -2211,8 +2230,8 @@ Division.prototype.bind=function(){
   el.addEventListener('click',function(e){
     var t=e.target.closest('button'); if(!t) return;
     if(t.classList.contains('clrAll')){
-      st.lea=''; st.jen=''; st.thn=''; st.q='';
-      self.q('.fl').value=''; self.q('.fj').value=''; self.q('.fy').value=''; self.q('.q').value='';
+      st.lea=''; st.jen=''; st.thn=''; st.biro=''; st.q='';
+      self.q('.fl').value=''; self.q('.fj').value=''; self.q('.fy').value=''; self.q('.fbiro').value=''; self.q('.q').value='';
       st.page=1; self.renderTable(); self.q('.q').focus();
     }
     else if(t.dataset.lea!==undefined){self.setFilters(t.dataset.lea);st.tab='all';st.page=1;self.refresh();self.goList()}
@@ -2234,6 +2253,7 @@ Division.prototype.bind=function(){
   this.q('.fl').addEventListener('change',function(e){st.lea=e.target.value;st.page=1;self.renderTable()});
   this.q('.fj').addEventListener('change',function(e){st.jen=e.target.value;st.page=1;self.renderTable()});
   this.q('.fy').addEventListener('change',function(e){st.thn=e.target.value;st.page=1;self.renderTable()});
+  this.q('.fbiro').addEventListener('change',function(e){st.biro=e.target.value;st.page=1;self.renderTable()});
   this.q('.ps').addEventListener('change',function(e){st.ps=parseInt(e.target.value,10);st.page=1;self.renderTable()});
   Array.prototype.forEach.call(el.querySelectorAll('input[type=radio]'),function(i){i.addEventListener('change',function(){self.countScope()})});
   document.addEventListener('click',function(e){var p=self.q('.xpanel');if(!p.hidden&&!e.target.closest('.exp'))self.openPanel(false)});
